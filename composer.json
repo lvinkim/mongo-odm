@@ -1,6 +1,7 @@
 {
   "name": "lvinkim/mongo-odm",
   "require": {
+    "php": ">=7.0",
     "doctrine/annotations": "^1.6"
   },
   "require-dev": {
@@ -9,6 +10,11 @@
   "autoload": {
     "psr-4": {
       "Lvinkim\\MongoODM\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
     }
   }
 }

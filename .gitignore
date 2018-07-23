@@ -1,7 +1,10 @@
 /*
 
 !.gitignore
+!/src/
+!/tests/
 !composer.json
+!composer.lock
 !docker-compose.yml
 !LICENSE
 !README.md
