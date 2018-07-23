@@ -1,0 +1,14 @@
+{
+  "name": "lvinkim/mongo-odm",
+  "require": {
+    "doctrine/annotations": "^1.6"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^6.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Lvinkim\\MongoODM\\": "src/"
+    }
+  }
+}
