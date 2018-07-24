@@ -27,7 +27,7 @@ class Company
     /**
      * 公司地址
      * @var Address
-     * @ODM\EmbedOne(target="App\Entity\Embed\Address")
+     * @ODM\EmbedOne(target="Tests\Entity\Embed\Address")
      */
     private $address;
 

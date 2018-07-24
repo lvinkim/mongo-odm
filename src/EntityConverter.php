@@ -14,8 +14,19 @@ use Lvinkim\MongoODM\Annotations\AbstractField;
 use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
 
-class Converter
+/**
+ * 负责 Entity 对象与 Mongodb Document 对象之间转换
+ * Class EntityConverter
+ * @package Lvinkim\MongoODM
+ */
+class EntityConverter
 {
+    /**
+     * 由 Mongodb Document 字段设置成对应的 Entity 属性
+     * @param AbstractField $annotation
+     * @param $documentValue
+     * @return array|bool|\DateTime|float|int|mixed|ObjectId|string
+     */
     public function documentToProperty(AbstractField $annotation, $documentValue)
     {
         $fieldType = $annotation->type;
@@ -56,13 +67,24 @@ class Converter
         return $propertyValue;
     }
 
+    /**
+     * 由 Mongodb Document 字段设置成对应的 Entity EmbedOne 对象
+     * @param AbstractField $annotation
+     * @param $document
+     * @return mixed
+     */
     public function documentToEmbedOne(AbstractField $annotation, $document)
     {
         $className = $annotation->target;
         $embed = new $className;
 
-        $reflectClass = new \ReflectionClass($embed);
-        $reader = new AnnotationReader();
+        try {
+            $reflectClass = new \ReflectionClass($embed);
+            $reader = new AnnotationReader();
+        } catch (\Exception $exception) {
+            return $embed;
+        }
+
         foreach ($reflectClass->getProperties(\ReflectionProperty::IS_PRIVATE) as $property) {
             if ($property->isStatic()) {
                 continue;
@@ -81,6 +103,12 @@ class Converter
         return $embed;
     }
 
+    /**
+     * 由 Mongodb Document 字段设置成对应的 Entity EmbedMany 对象
+     * @param AbstractField $annotation
+     * @param array $documents
+     * @return array
+     */
     public function documentToEmbedMany(AbstractField $annotation, array $documents)
     {
         $embeds = [];
@@ -90,6 +118,12 @@ class Converter
         return $embeds;
     }
 
+    /**
+     * 由 Entity 的字段属性转换回 Mongodb Document 字段
+     * @param AbstractField $annotation
+     * @param $propertyValue
+     * @return array|bool|float|int|ObjectId|UTCDateTime|\stdClass|string
+     */
     public function propertyToDocument(AbstractField $annotation, $propertyValue)
     {
         $fieldType = $annotation->type;
@@ -131,6 +165,12 @@ class Converter
         return $documentValue;
     }
 
+    /**
+     * 由 Entity 的 EmbedOne 属性的对象转换回 Mongodb Document 字段
+     * @param AbstractField $annotation
+     * @param $embed
+     * @return \stdClass
+     */
     public function embedOneToDocument(AbstractField $annotation, $embed)
     {
         $className = $annotation->target;
@@ -138,8 +178,13 @@ class Converter
 
         $properties = new \stdClass();
 
-        $reflectClass = new \ReflectionClass($targetClass);
-        $reader = new AnnotationReader();
+        try {
+            $reflectClass = new \ReflectionClass($targetClass);
+            $reader = new AnnotationReader();
+        } catch (\Exception $exception) {
+            return $properties;
+        }
+
         foreach ($reflectClass->getProperties(\ReflectionProperty::IS_PRIVATE) as $property) {
             if ($property->isStatic()) {
                 continue;
@@ -149,11 +194,16 @@ class Converter
 
             $propertyName = $property->getName();
 
-            $reflectProperty = new \ReflectionProperty($embed, $propertyName);
-            $reflectProperty->setAccessible(true);
-            $propertyValue = $reflectProperty->getValue($embed);
+            try {
+                $reflectProperty = new \ReflectionProperty($embed, $propertyName);
 
-            $documentValue = $this->propertyToDocument($annotation, $propertyValue);
+                $reflectProperty->setAccessible(true);
+                $propertyValue = $reflectProperty->getValue($embed);
+
+                $documentValue = $this->propertyToDocument($annotation, $propertyValue);
+            } catch (\Exception $exception) {
+                $documentValue = null;
+            }
 
             $properties->{$propertyName} = $documentValue;
         }
@@ -161,6 +211,12 @@ class Converter
         return $properties;
     }
 
+    /**
+     * 由 Entity 的 EmbedMany 属性的对象转换回 Mongodb Document 字段
+     * @param AbstractField $annotation
+     * @param array $embeds
+     * @return array
+     */
     public function embedManyToDocument(AbstractField $annotation, array $embeds)
     {
         $documents = [];

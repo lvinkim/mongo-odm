@@ -9,11 +9,12 @@
 namespace Tests\Entity;
 
 use Lvinkim\MongoODM\Annotations as ODM;
+use Lvinkim\MongoODM\Entity;
 use MongoDB\BSON\ObjectId;
 use Tests\Entity\Embed\Company;
 use Tests\Entity\Embed\Member;
 
-class User
+class User extends Entity
 {
     /**
      * @var ObjectId

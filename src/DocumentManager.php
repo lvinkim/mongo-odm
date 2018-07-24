@@ -11,6 +11,10 @@ namespace Lvinkim\MongoODM;
 
 use MongoDB\Driver\Manager;
 
+/**
+ * Class DocumentManager
+ * @package Lvinkim\MongoODM
+ */
 class DocumentManager
 {
     /** @var Manager */
