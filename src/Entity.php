@@ -11,13 +11,14 @@ namespace Lvinkim\MongoODM;
 
 use Doctrine\Common\Annotations\AnnotationReader;
 use Lvinkim\MongoODM\Annotations\AbstractField;
+use MongoDB\BSON\ObjectId;
 
 /**
  * Entity 基础类
  * Class Entity
  * @package Lvinkim\MongoODM
  */
-class Entity implements EntityInterface
+abstract class Entity implements EntityInterface
 {
     /** @var EntityConverter */
     private $entityConverter;
@@ -91,4 +92,7 @@ class Entity implements EntityInterface
         return $this;
     }
 
+    abstract public function getId();
+
+    abstract public function setId($id);
 }

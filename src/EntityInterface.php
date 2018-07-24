@@ -8,7 +8,6 @@
 
 namespace Lvinkim\MongoODM;
 
-
 /**
  * Entity 必须实现与 Mongodb Document 的转换方法
  * Interface EntityInterface
@@ -16,6 +15,10 @@ namespace Lvinkim\MongoODM;
  */
 interface EntityInterface
 {
+    public function getId();
+
+    public function setId($id);
+
     public function getDocument(): \stdClass;
 
     public function setByDocument(\stdClass $document);

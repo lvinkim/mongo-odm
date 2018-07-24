@@ -73,7 +73,7 @@ abstract class EntityDAO
         return $deletedCount;
     }
 
-    public function insert(EntityInterface $entity)
+    public function insertOne(EntityInterface $entity)
     {
         $bulk = new BulkWrite(['ordered' => false]); // 允许更新报错
 
@@ -84,6 +84,7 @@ abstract class EntityDAO
         $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
 
         $insertedCount = $result->getInsertedCount();
+        $insertedCount ? $entity->setId($document->_id) : null;
 
         return $insertedCount;
     }
@@ -123,7 +124,7 @@ abstract class EntityDAO
         }
     }
 
-    public function update(EntityInterface $entity)
+    public function updateOne(EntityInterface $entity)
     {
         $bulk = new BulkWrite(['ordered' => false]);
 
@@ -139,4 +140,81 @@ abstract class EntityDAO
         return $modifiedCount;
     }
 
+    public function upsertOne(EntityInterface $entity)
+    {
+        if ($entity->getId() && $this->count(['_id' => $entity->getId()])) {
+            return $this->updateOne($entity);
+        } else {
+            return $this->insertOne($entity);
+        }
+    }
+
+
+    /**
+     * @param EntityInterface[] $entities
+     * @return int|null
+     */
+    public function insertMany($entities)
+    {
+        $bulk = new BulkWrite(['ordered' => false]); // 允许更新报错
+
+        foreach ($entities as $entity) {
+            $document = $entity->getDocument();
+            $bulk->insert($document);
+        }
+
+        $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
+        $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
+
+        $insertedCount = $result->getInsertedCount();
+
+        return $insertedCount;
+    }
+
+    /**
+     * @param EntityInterface[] $entities
+     * @return int|null
+     */
+    public function updateMany($entities)
+    {
+        $bulk = new BulkWrite(['ordered' => false]);
+
+        foreach ($entities as $entity) {
+            $document = $entity->getDocument();
+            $bulk->update(['_id' => $document->_id], $document);
+        }
+
+        $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
+        $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
+
+        $modifiedCount = $result->getModifiedCount();
+
+        return $modifiedCount;
+    }
+
+    /**
+     * @param EntityInterface[] $entities
+     * @return int|null
+     */
+    public function upsertMany($entities)
+    {
+        $bulk = new BulkWrite(['ordered' => false]);
+
+        foreach ($entities as $entity) {
+            $document = $entity->getDocument();
+
+            if ($entity->getId() && $this->count(['_id' => $entity->getId()])) {
+                $bulk->update(['_id' => $document->_id], $document);
+            } else {
+                $bulk->insert($document);
+            }
+        }
+        $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
+        $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
+
+        $modifiedCount = $result->getModifiedCount();
+        $insertedCount = $result->getInsertedCount();
+
+        return ($modifiedCount + $insertedCount);
+    }
 }

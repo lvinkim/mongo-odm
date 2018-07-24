@@ -73,15 +73,15 @@ class User extends Entity
     /**
      * @return ObjectId
      */
-    public function getId(): ObjectId
+    public function getId(): ?ObjectId
     {
         return $this->_id;
     }
 
     /**
-     * @param ObjectId $id
+     * @param mixed $id
      */
-    public function setId(ObjectId $id): void
+    public function setId($id): void
     {
         $this->_id = $id;
     }

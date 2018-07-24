@@ -26,12 +26,15 @@ class MongoODMTest extends TestCase
     /** @var UserDAO */
     private $userDAO;
 
-    public function setUp()
+    public static function setUpBeforeClass()
     {
         \Doctrine\Common\Annotations\AnnotationRegistry::registerUniqueLoader(function () {
             return true;
         });
+    }
 
+    public function setUp()
+    {
         $uri = 'mongodb://docker.for.mac.localhost';
         $driver = new Manager($uri);
 
@@ -84,7 +87,7 @@ class MongoODMTest extends TestCase
 
         $user->setRemark(['skill' => '运动，唱歌']);
 
-        $insertedCount = $this->userDAO->insert($user);
+        $insertedCount = $this->userDAO->insertOne($user);
 
         $this->assertEquals(1, $insertedCount);
 
@@ -96,6 +99,7 @@ class MongoODMTest extends TestCase
      * 查找单条记录
      * @param User $user
      * @depends testInsertOne
+     * @return User
      */
     public function testFindOne(User $user)
     {
@@ -104,6 +108,8 @@ class MongoODMTest extends TestCase
 
         $this->assertInstanceOf(EntityInterface::class, $entity);
         $this->assertEquals($user->getName(), $entity->getName());
+
+        return $entity;
     }
 
 
@@ -124,6 +130,205 @@ class MongoODMTest extends TestCase
         }
 
         $this->assertEquals(1, $cursor);
+    }
+
+    /**
+     * @param User $user
+     * @depends testFindOne
+     */
+    public function testUpdate(User $user)
+    {
+        $newAge = $user->getAge() + 1;
+        $user->setAge($newAge);
+
+        $modifiedCount = $this->userDAO->updateOne($user);
+        $this->assertEquals(1, $modifiedCount);
+
+        /** @var User $newUser */
+        $newUser = $this->userDAO->findOne(['_id' => $user->getId()]);
+
+        $this->assertEquals($newAge, $newUser->getAge());
+
+    }
+
+    /**
+     * @depends testCleanCollection
+     */
+    public function testUpsertForInsert()
+    {
+        $user = new User();
+
+        $user->setName('Jack - ' . rand(100, 999));
+        $user->setAge(rand(10, 99));
+        $user->setBirth((new \DateTime())->setTimestamp(strtotime('2000-01-01 01:01:01')));
+        $user->setTags(['young', 'fashion']);
+        $user->setWeight(66.66);
+
+        $company = new Company();
+        $company->setName('company name');
+        $company->setContact('13812345678');
+
+        $address = new Address();
+        $address->setCountry('中国');
+        $address->setCity('广州');
+        $company->setAddress($address);
+
+        $user->setCompany($company);
+
+        $member = new Member();
+        $member->setName('Tom');
+        $member->setRelation('brother');
+        $families = [$member];
+
+        $user->setFamilies($families);
+
+        $user->setRemark(['skill' => '运动，唱歌']);
+
+        $count = $this->userDAO->upsertOne($user);
+
+        $this->assertEquals(1, $count);
+    }
+
+    /**
+     * @param $user User
+     * @depends testFindOne
+     */
+    public function testUpsertForUpdate(User $user)
+    {
+        $newAge = $user->getAge() + 1;
+        $user->setAge($newAge);
+
+        $modifiedCount = $this->userDAO->upsertOne($user);
+        $this->assertEquals(1, $modifiedCount);
+
+        /** @var User $newUser */
+        $newUser = $this->userDAO->findOne(['_id' => $user->getId()]);
+
+        $this->assertEquals($newAge, $newUser->getAge());
+    }
+
+    /**
+     * @depends testCleanCollection
+     */
+    public function testInsertMany()
+    {
+        $userCount = 10;
+        $users = (function () use ($userCount) {
+            foreach (range(1, $userCount) as $value) {
+                $user = new User();
+
+                $user->setName('Jack - ' . $value);
+                $user->setAge(rand(10, 99));
+                $user->setBirth((new \DateTime())->setTimestamp(strtotime('2000-01-01 01:01:01')));
+                $user->setTags(['young', 'fashion']);
+                $user->setWeight(66.66);
+
+                $company = new Company();
+                $company->setName('company name');
+                $company->setContact('13812345678');
+
+                $address = new Address();
+                $address->setCountry('中国');
+                $address->setCity('广州');
+                $company->setAddress($address);
+
+                $user->setCompany($company);
+
+                $member = new Member();
+                $member->setName('Tom');
+                $member->setRelation('brother');
+                $families = [$member];
+
+                $user->setFamilies($families);
+
+                $user->setRemark(['skill' => '运动，唱歌']);
+
+                yield $user;
+            }
+        })();
+
+        $insertedCount = $this->userDAO->insertMany($users);
+
+        $this->assertEquals($userCount, $insertedCount);
+    }
+
+
+    /**
+     * @depends testInsertMany
+     */
+    public function testUpdateMany()
+    {
+        $usersCount = $this->userDAO->count();
+
+        /** @var User[] $users */
+        $users = $this->userDAO->find();
+        $updateUsers = (function () use ($users) {
+
+            foreach ($users as $user) {
+                $user->setAge(rand(10, 99));
+                yield $user;
+            }
+
+        })();
+
+        $modifiedCount = $this->userDAO->updateMany($updateUsers);
+
+        $this->assertEquals($usersCount, $modifiedCount);
+    }
+
+    /**
+     * @depends testInsertMany
+     */
+    public function testUpsertMany()
+    {
+        $updateCount = $this->userDAO->count();
+        $insertCount = 10;
+
+        /** @var User[] $users */
+        $users = $this->userDAO->find();
+
+        $upsertUsers = (function () use ($insertCount, $users) {
+            foreach (range(1, $insertCount) as $value) {
+                $user = new User();
+
+                $user->setName('Jack - ' . $value);
+                $user->setAge(rand(10, 99));
+                $user->setBirth((new \DateTime())->setTimestamp(strtotime('2000-01-01 01:01:01')));
+                $user->setTags(['young', 'fashion']);
+                $user->setWeight(66.66);
+
+                $company = new Company();
+                $company->setName('company name');
+                $company->setContact('13812345678');
+
+                $address = new Address();
+                $address->setCountry('中国');
+                $address->setCity('广州');
+                $company->setAddress($address);
+
+                $user->setCompany($company);
+
+                $member = new Member();
+                $member->setName('Tom');
+                $member->setRelation('brother');
+                $families = [$member];
+
+                $user->setFamilies($families);
+
+                $user->setRemark(['skill' => '运动，唱歌']);
+
+                yield $user;
+            }
+
+            foreach ($users as $user) {
+                $user->setAge(rand(10, 99));
+                yield $user;
+            }
+        })();
+
+        $upsertCount = $this->userDAO->upsertMany($upsertUsers);
+
+        $this->assertEquals(($updateCount + $insertCount), $upsertCount);
     }
 
 }
