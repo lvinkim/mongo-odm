@@ -32,6 +32,16 @@ class EntityConverter
         $this->annotationParser = new AnnotationParser();
     }
 
+    public function getId($entity, string $entityClassName)
+    {
+        // todo
+    }
+
+    public function setId($document, string $entityClassName)
+    {
+        // todo
+    }
+
     /**
      * 将 mongodb document 转换成 entity 类
      * @param mixed $document
@@ -102,7 +112,10 @@ class EntityConverter
             $fieldValue = $entityField->getValue($entity);
             $propertyValue = $this->fieldToProperty($fieldValue, $annotation);
 
-            $fieldName = $entityField->getName();
+            $fieldName = $annotation->name ?? $entityField->getName();
+            if ($annotation->id) {
+                $fieldName = '_id';
+            }
             $document->{$fieldName} = $propertyValue;
         }
         return $document;

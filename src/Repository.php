@@ -29,12 +29,12 @@ abstract class Repository
     /**
      * Repository constructor.
      * @param DocumentManager $documentManager
-     * @param EntityConverter $entityConverter
+     * @throws \Doctrine\Common\Annotations\AnnotationException
      */
-    public function __construct(DocumentManager $documentManager, EntityConverter $entityConverter)
+    public function __construct(DocumentManager $documentManager)
     {
         $this->documentManager = $documentManager;
-        $this->entityConverter = $entityConverter;
+        $this->entityConverter = new EntityConverter();
     }
 
     /**
@@ -147,7 +147,7 @@ abstract class Repository
     {
         $bulk = new BulkWrite(['ordered' => false]); // 允许更新报错
 
-        $document = $this->entityConverter->entityToDocument($entity);
+        $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
 
         $bulk->insert($document);
 
@@ -156,7 +156,12 @@ abstract class Repository
 
         $insertedCount = $result->getInsertedCount();
 
-        return $insertedCount;
+        $insertedId = null;
+        if ($insertedCount) {
+            $insertedId = $document->_id;
+        }
+
+        return $insertedId;
     }
 
     /**
@@ -168,8 +173,7 @@ abstract class Repository
         $bulk = new BulkWrite(['ordered' => false]); // 允许更新报错
 
         foreach ($entities as $entity) {
-            // todo 将 entity 转换为 document
-            $document = $entity;
+            $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
             $bulk->insert($document);
         }
 

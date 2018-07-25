@@ -2,16 +2,17 @@
 /**
  * Created by PhpStorm.
  * User: lvinkim
- * Date: 23/07/2018
- * Time: 11:08 PM
+ * Date: 2018/7/25
+ * Time: 11:52 PM
  */
 
 namespace Tests\App\Repository;
 
-use Lvinkim\MongoODM\Repository;
-use Tests\Entity\User;
 
-class UserRepository extends Repository
+use Lvinkim\MongoODM\Repository;
+use Tests\App\Entity\IsEntityWithString;
+
+class IsEntityWithStringRepository extends Repository
 {
 
     /**
@@ -20,7 +21,7 @@ class UserRepository extends Repository
      */
     protected function getNamespace(): string
     {
-        return 'test.user';
+        return 'test.entity_string';
     }
 
     /**
@@ -29,7 +30,6 @@ class UserRepository extends Repository
      */
     protected function getEntityClassName(): string
     {
-        return User::class;
+        return IsEntityWithString::class;
     }
-
 }
