@@ -93,6 +93,10 @@ class UserDAO extends EntityDAO
 #### 步骤3. 使用示例
 
 ```php
+
+use Lvinkim\MongoODM\DocumentManager;
+use MongoDB\Driver\Manager;
+
 // 必须添加这行代码
 \Doctrine\Common\Annotations\AnnotationRegistry::registerUniqueLoader(function () {
     return true;
