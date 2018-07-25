@@ -9,22 +9,21 @@
 namespace Tests;
 
 use Lvinkim\MongoODM\DocumentManager;
-use Lvinkim\MongoODM\EntityInterface;
 use MongoDB\Driver\Manager;
 use PHPUnit\Framework\TestCase;
-use Tests\DAO\UserDAO;
 use Tests\Entity\Embed\Address;
 use Tests\Entity\Embed\Company;
 use Tests\Entity\Embed\Member;
 use Tests\Entity\User;
+use Tests\Repository\UserRepository;
 
 class MongoODMTest extends TestCase
 {
     /** @var DocumentManager */
     private $documentManager;
 
-    /** @var UserDAO */
-    private $userDAO;
+    /** @var UserRepository */
+    private $userRepository;
 
     public static function setUpBeforeClass()
     {
@@ -39,7 +38,7 @@ class MongoODMTest extends TestCase
         $driver = new Manager($uri);
 
         $this->documentManager = new DocumentManager($driver);
-        $this->userDAO = $this->documentManager->getDAO(UserDAO::class);
+        $this->userRepository = $this->documentManager->getRepository(UserRepository::class);
 
     }
 
@@ -48,8 +47,8 @@ class MongoODMTest extends TestCase
      */
     public function testCleanCollection()
     {
-        $this->userDAO->delete();
-        $count = $this->userDAO->count();
+        $this->userRepository->delete();
+        $count = $this->userRepository->count();
         $this->assertEquals(0, $count);
     }
 

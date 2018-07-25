@@ -6,12 +6,12 @@
  * Time: 11:08 PM
  */
 
-namespace Tests\DAO;
+namespace Tests\Repository;
 
-use Lvinkim\MongoODM\EntityDAO;
+use Lvinkim\MongoODM\Repository;
 use Tests\Entity\User;
 
-class UserDAO extends EntityDAO
+class UserRepository extends Repository
 {
 
     /**
@@ -27,8 +27,9 @@ class UserDAO extends EntityDAO
      * 返回数据表的对应实体类名
      * @return string
      */
-    protected function getEntity(): string
+    protected function getEntityClassName(): string
     {
         return User::class;
     }
+
 }

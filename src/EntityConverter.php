@@ -9,7 +9,6 @@
 namespace Lvinkim\MongoODM;
 
 
-use Doctrine\Common\Annotations\AnnotationReader;
 use Lvinkim\MongoODM\Annotations\AbstractField;
 use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
@@ -21,80 +20,168 @@ use MongoDB\BSON\UTCDateTime;
  */
 class EntityConverter
 {
+    /** @var AnnotationParser */
+    private $annotationParser;
+
     /**
-     * 由 Mongodb Document 字段设置成对应的 Entity 属性
+     * EntityConverter constructor.
+     * @throws \Doctrine\Common\Annotations\AnnotationException
+     */
+    public function __construct()
+    {
+        $this->annotationParser = new AnnotationParser();
+    }
+
+    /**
+     * 将 mongodb document 转换成 entity 类
+     * @param mixed $document
+     * @param string $entityClassName
+     * @return mixed
+     */
+    public function documentToEntity($document, string $entityClassName)
+    {
+        if (!$this->annotationParser->isEntityClass($entityClassName)) {
+            return $document;
+        }
+
+        try {
+            $reflectClass = new \ReflectionClass($entityClassName);
+        } catch (\Exception $exception) {
+            return $document;
+        }
+
+        $entity = new $entityClassName();
+
+        foreach ($reflectClass->getProperties() as $documentProperty) {
+            if ($documentProperty->isStatic()) {
+                continue;
+            }
+
+            $annotation = $this->annotationParser->getPropertyAnnotation($documentProperty);
+
+            $propertyName = $annotation->name ?? $documentProperty->getName();
+            if ($annotation->id) {
+                $propertyName = '_id';
+            }
+            $propertyValue = $document->{$propertyName} ?? null;
+            $fieldValue = $this->propertyToField($propertyValue, $annotation);
+
+            $documentProperty->setAccessible(true);
+            $documentProperty->setValue($entity, $fieldValue);
+        }
+
+        return $entity;
+    }
+
+    /**
+     * @param $entity
+     * @param string $entityClassName
+     * @return mixed
+     */
+    public function entityToDocument($entity, string $entityClassName)
+    {
+        if (!$this->annotationParser->isEntityClass($entityClassName)) {
+            return $entity;
+        }
+
+        try {
+            $reflectClass = new \ReflectionClass($entityClassName);
+        } catch (\Exception $exception) {
+            return $entity;
+        }
+
+        $document = new \stdClass();
+        foreach ($reflectClass->getProperties() as $entityField) {
+            if ($entityField->isStatic()) {
+                continue;
+            }
+            $annotation = $this->annotationParser->getPropertyAnnotation($entityField);
+
+            $entityField->setAccessible(true);
+
+            $fieldValue = $entityField->getValue($entity);
+            $propertyValue = $this->fieldToProperty($fieldValue, $annotation);
+
+            $fieldName = $entityField->getName();
+            $document->{$fieldName} = $propertyValue;
+        }
+        return $document;
+    }
+
+    /**
+     * 由 Mongodb Document 属性 property 设置成对应的 Entity 字段 Field 属性
      * @param AbstractField $annotation
-     * @param $documentValue
+     * @param $propertyValue
      * @return array|bool|\DateTime|float|int|mixed|ObjectId|string
      */
-    public function documentToProperty(AbstractField $annotation, $documentValue)
+    private function propertyToField($propertyValue, AbstractField $annotation)
     {
         $fieldType = $annotation->type;
         switch ($fieldType) {
             case 'string':
-                $propertyValue = strval($documentValue);
+                $fieldValue = strval($propertyValue);
                 break;
             case 'int':
-                $propertyValue = intval($documentValue);
+                $fieldValue = intval($propertyValue);
                 break;
             case 'float':
-                $propertyValue = floatval($documentValue);
+                $fieldValue = floatval($propertyValue);
                 break;
             case 'array':
-                $propertyValue = is_array($documentValue) ? $documentValue : settype($documentValue, 'array');
+                $fieldValue = is_array($propertyValue) ? $propertyValue : settype($propertyValue, 'array');
                 break;
             case 'date':
-                /** @var UTCDateTime $documentValue */
-                $propertyValue = $documentValue->toDateTime();
+                /** @var UTCDateTime $propertyValue */
+                $fieldValue = $propertyValue->toDateTime();
                 break;
             case 'id':
-                /** @var ObjectId $documentValue */
-                $propertyValue = $documentValue;
+                /** @var ObjectId $propertyValue */
+                $fieldValue = $propertyValue;
                 break;
             case 'embedOne':
-                $propertyValue = $this->documentToEmbedOne($annotation, $documentValue);
+                $fieldValue = $this->propertyToEmbedOne($propertyValue, $annotation);
                 break;
             case 'embedMany':
-                $propertyValue = $this->documentToEmbedMany($annotation, $documentValue);
+                $fieldValue = $this->propertyToEmbedMany($propertyValue, $annotation);
                 break;
             case 'raw':
-                $propertyValue = $documentValue;
+                $fieldValue = $propertyValue;
                 break;
             default:
-                $propertyValue = $documentValue;
+                $fieldValue = $propertyValue;
                 break;
         }
-        return $propertyValue;
+        return $fieldValue;
     }
 
     /**
      * 由 Mongodb Document 字段设置成对应的 Entity EmbedOne 对象
      * @param AbstractField $annotation
-     * @param $document
+     * @param $propertyValue
      * @return mixed
      */
-    public function documentToEmbedOne(AbstractField $annotation, $document)
+    private function propertyToEmbedOne($propertyValue, AbstractField $annotation)
     {
         $className = $annotation->target;
-        $embed = new $className;
 
         try {
-            $reflectClass = new \ReflectionClass($embed);
-            $reader = new AnnotationReader();
+            $reflectClass = new \ReflectionClass($className);
         } catch (\Exception $exception) {
-            return $embed;
+            return $propertyValue;
         }
 
-        foreach ($reflectClass->getProperties(\ReflectionProperty::IS_PRIVATE) as $property) {
+        $embed = new $className;
+
+        foreach ($reflectClass->getProperties() as $property) {
             if ($property->isStatic()) {
                 continue;
             }
             /** @var AbstractField $annotation */
-            $annotation = $reader->getPropertyAnnotation($property, AbstractField::class);
+            $annotation = $this->annotationParser->getPropertyAnnotation($property);
 
             $propertyName = $property->getName();
-            $documentValue = $document->{$propertyName} ?? null;
-            $propertyValue = $this->documentToProperty($annotation, $documentValue);
+            $propertyValue = $document->{$propertyName} ?? null;
+            $propertyValue = $this->propertyToField($propertyValue, $annotation);
 
             $property->setAccessible(true);
             $property->setValue($embed, $propertyValue);
@@ -106,63 +193,62 @@ class EntityConverter
     /**
      * 由 Mongodb Document 字段设置成对应的 Entity EmbedMany 对象
      * @param AbstractField $annotation
-     * @param array $documents
+     * @param array $properties
      * @return array
      */
-    public function documentToEmbedMany(AbstractField $annotation, array $documents)
+    private function propertyToEmbedMany(array $properties, AbstractField $annotation)
     {
         $embeds = [];
-        foreach ($documents as $document) {
-            $embeds[] = $this->documentToEmbedOne($annotation, $document);
+        foreach ($properties as $property) {
+            $embeds[] = $this->propertyToEmbedOne($property, $annotation);
         }
+
         return $embeds;
     }
 
     /**
      * 由 Entity 的字段属性转换回 Mongodb Document 字段
      * @param AbstractField $annotation
-     * @param $propertyValue
+     * @param $fieldValue
      * @return array|bool|float|int|ObjectId|UTCDateTime|\stdClass|string
      */
-    public function propertyToDocument(AbstractField $annotation, $propertyValue)
+    private function fieldToProperty($fieldValue, AbstractField $annotation)
     {
         $fieldType = $annotation->type;
 
         switch ($fieldType) {
             case 'string':
-                $documentValue = strval($propertyValue);
+                $propertyValue = strval($fieldValue);
                 break;
             case 'int':
-                $documentValue = intval($propertyValue);
+                $propertyValue = intval($fieldValue);
                 break;
             case 'float':
-                $documentValue = floatval($propertyValue);
+                $propertyValue = floatval($fieldValue);
                 break;
             case 'array':
-                $documentValue = is_array($propertyValue) ? $propertyValue : settype($propertyValue, 'array');
+                $propertyValue = is_array($fieldValue) ? $fieldValue : settype($fieldValue, 'array');
                 break;
             case 'date':
-                /** @var \DateTime $propertyValue */
-                $documentValue = new UTCDateTime($propertyValue);
+                /** @var \DateTime $fieldValue */
+                $propertyValue = new UTCDateTime($fieldValue);
                 break;
             case 'id':
-                $documentValue = $propertyValue instanceof ObjectId ? $propertyValue : new ObjectId();
+                $propertyValue = $fieldValue instanceof ObjectId ? $fieldValue : new ObjectId();
                 break;
             case 'embedOne':
-                $documentValue = $this->embedOneToDocument($annotation, $propertyValue);
+                $propertyValue = $this->embedOneToProperty($fieldValue, $annotation);
                 break;
             case 'embedMany':
-                $documentValue = $this->embedManyToDocument($annotation, $propertyValue);
+                $propertyValue = $this->embedManyToProperty($fieldValue, $annotation);
                 break;
             case 'raw':
-                $documentValue = $propertyValue;
-                break;
             default:
-                $documentValue = $propertyValue;
+                $propertyValue = $fieldValue;
                 break;
         }
 
-        return $documentValue;
+        return $propertyValue;
     }
 
     /**
@@ -171,44 +257,42 @@ class EntityConverter
      * @param $embed
      * @return \stdClass
      */
-    public function embedOneToDocument(AbstractField $annotation, $embed)
+    private function embedOneToProperty($embed, AbstractField $annotation)
     {
         $className = $annotation->target;
-        $targetClass = new $className;
-
-        $properties = new \stdClass();
 
         try {
-            $reflectClass = new \ReflectionClass($targetClass);
-            $reader = new AnnotationReader();
+            $reflectClass = new \ReflectionClass($className);
         } catch (\Exception $exception) {
-            return $properties;
+            return $embed;
         }
 
-        foreach ($reflectClass->getProperties(\ReflectionProperty::IS_PRIVATE) as $property) {
-            if ($property->isStatic()) {
+        $property = new \stdClass();
+
+        foreach ($reflectClass->getProperties() as $field) {
+            if ($field->isStatic()) {
                 continue;
             }
-            /** @var AbstractField $annotation */
-            $annotation = $reader->getPropertyAnnotation($property, AbstractField::class);
 
-            $propertyName = $property->getName();
+            $annotation = $this->annotationParser->getPropertyAnnotation($field);
+
+            $propertyName = $field->getName();
 
             try {
                 $reflectProperty = new \ReflectionProperty($embed, $propertyName);
 
                 $reflectProperty->setAccessible(true);
-                $propertyValue = $reflectProperty->getValue($embed);
+                $fieldValue = $reflectProperty->getValue($embed);
 
-                $documentValue = $this->propertyToDocument($annotation, $propertyValue);
+                $propertyValue = $this->fieldToProperty($fieldValue, $annotation);
             } catch (\Exception $exception) {
-                $documentValue = null;
+                $propertyValue = null;
             }
 
-            $properties->{$propertyName} = $documentValue;
+            $property->{$propertyName} = $propertyValue;
         }
 
-        return $properties;
+        return $property;
     }
 
     /**
@@ -217,11 +301,11 @@ class EntityConverter
      * @param array $embeds
      * @return array
      */
-    public function embedManyToDocument(AbstractField $annotation, array $embeds)
+    private function embedManyToProperty(array $embeds, AbstractField $annotation)
     {
         $documents = [];
         foreach ($embeds as $embed) {
-            $documents[] = $this->embedOneToDocument($annotation, $embed);
+            $documents[] = $this->embedOneToProperty($embed, $annotation);
         }
         return $documents;
     }

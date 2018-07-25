@@ -30,7 +30,7 @@ class DocumentManager
         return $this->manager;
     }
 
-    public function getDAO($className): EntityDAO
+    public function getRepository($className): Repository
     {
         return new $className($this);
     }

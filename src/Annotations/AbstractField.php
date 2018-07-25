@@ -18,6 +18,7 @@ use Doctrine\Common\Annotations\Annotation;
 class AbstractField extends Annotation
 {
     public $id = false;
+    public $name;
     public $type;
     public $target;
     public $options = [];

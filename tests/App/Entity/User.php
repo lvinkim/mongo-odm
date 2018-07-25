@@ -9,18 +9,23 @@
 namespace Tests\Entity;
 
 use Lvinkim\MongoODM\Annotations as ODM;
-use Lvinkim\MongoODM\Entity;
 use MongoDB\BSON\ObjectId;
 use Tests\Entity\Embed\Company;
 use Tests\Entity\Embed\Member;
 
-class User extends Entity
+/**
+ * Class User
+ * @package Tests\Entity
+ * @ODM\Entity
+ */
+class User
 {
     /**
      * @var ObjectId
      * @ODM\Id
      */
-    private $_id;
+    private $id;
+
     /**
      * 名称
      * @var string
@@ -75,7 +80,7 @@ class User extends Entity
      */
     public function getId(): ?ObjectId
     {
-        return $this->_id;
+        return $this->id;
     }
 
     /**
@@ -83,7 +88,7 @@ class User extends Entity
      */
     public function setId($id): void
     {
-        $this->_id = $id;
+        $this->id = $id;
     }
 
     /**

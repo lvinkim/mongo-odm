@@ -5,6 +5,28 @@
 $ composer require lvinkim/mongo-odm
 ```
 
+### TODO
+
+#### 1. 命名更改
+* DAO 更名为 Repository
+* 通过 ID 获取单个 Entity 的方法：findOneById($id)
+* 通过 filter 获取单个 Entity 的方法：findOne($filter)
+* 通过 $filter 获取多个 Entity 的方法：findMany($filter, ...)
+* 删除单个 Entity 的方法：deleteOne($entity)
+* 通过 $filter 批量删除的方法：deleteMany($filter)
+* 插入单个 Entity 的方法：insertOne($entity)
+* 插入多个 Entity 的方法：insertMany($entities)
+* 更新单个 Entity 的方法：updateOne($entity)
+* 更新多个 Entity 的方法：updateMany($entities)
+* 插入或更新单个 Entity 的方法：upsertOne($entity)
+* 插入或更新多个 Entity 的方法：upsertMany($entities)
+
+#### 2. 待实现功能
+* 支持 public 属性
+* 数据库 _id 在 Entity 中默认命名为 id
+* 支持 GridFS 
+* Entity 类不使用继承的方法，使用独立的 Service 完成 Entity 与 Document 的转换
+
 ### 使用说明
 
 #### 步骤1. 定义 Entity

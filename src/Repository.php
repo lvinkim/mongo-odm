@@ -15,16 +15,26 @@ use MongoDB\Driver\WriteConcern;
 
 /**
  * 对数据库的 curd 操作的封装
- * Class EntityDAO
+ * Class Repository
  * @package Lvinkim\MongoODM
  */
-abstract class EntityDAO
+abstract class Repository
 {
+    /** @var DocumentManager */
     private $documentManager;
 
-    public function __construct(DocumentManager $documentManager)
+    /** @var EntityConverter */
+    private $entityConverter;
+
+    /**
+     * Repository constructor.
+     * @param DocumentManager $documentManager
+     * @param EntityConverter $entityConverter
+     */
+    public function __construct(DocumentManager $documentManager, EntityConverter $entityConverter)
     {
         $this->documentManager = $documentManager;
+        $this->entityConverter = $entityConverter;
     }
 
     /**
@@ -37,8 +47,7 @@ abstract class EntityDAO
      * 返回数据表的对应实体类名
      * @return string
      */
-    abstract protected function getEntity(): string;
-
+    abstract protected function getEntityClassName(): string;
 
     /**
      * @param array $filter
@@ -56,49 +65,37 @@ abstract class EntityDAO
         }
     }
 
+
+    /**
+     * @param $id
+     * @return mixed|null
+     */
+    public function findOneById($id)
+    {
+        return $this->findOne(['_id' => $id]);
+    }
+
     /**
      * @param array $filter
-     * @return int|null
+     * @return mixed|null
      */
-    public function delete(array $filter = [])
-    {
-        $bulk = new BulkWrite(['ordered' => false]);
-        $bulk->delete($filter);
-
-        $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
-        $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
-
-        $deletedCount = $result->getDeletedCount();
-
-        return $deletedCount;
-    }
-
-    public function insertOne(EntityInterface $entity)
-    {
-        $bulk = new BulkWrite(['ordered' => false]); // 允许更新报错
-
-        $document = $entity->getDocument();
-        $bulk->insert($document);
-
-        $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
-        $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
-
-        $insertedCount = $result->getInsertedCount();
-        $insertedCount ? $entity->setId($document->_id) : null;
-
-        return $insertedCount;
-    }
-
     public function findOne(array $filter = [])
     {
-        $entities = $this->find($filter);
+        $entities = $this->findMany($filter);
         foreach ($entities as $entity) {
             return $entity;
         }
         return null;
     }
 
-    public function find(array $filter = [], array $sort = null, int $skip = null, int $limit = null)
+    /**
+     * @param array $filter
+     * @param array|null $sort
+     * @param int|null $skip
+     * @param int|null $limit
+     * @return \Generator
+     */
+    public function findMany(array $filter = [], array $sort = null, int $skip = null, int $limit = null)
     {
         list($dbName, $collectionName) = explode('.', $this->getNamespace(), 2);
         $commandOpt = ['find' => $collectionName];
@@ -111,12 +108,11 @@ abstract class EntityDAO
 
         try {
             $documents = $this->documentManager->getManager()->executeCommand($dbName, $queryCommand);
-            $entityClass = $this->getEntity();
+
+            $entityClassName = $this->getEntityClassName();
             /** @var \stdClass $document */
             foreach ($documents as $document) {
-                /** @var EntityInterface $entity */
-                $entity = new $entityClass();
-                $entity->setByDocument($document);
+                $entity = $this->entityConverter->documentToEntity($document, $entityClassName);
                 yield $entity;
             }
         } catch (\MongoDB\Driver\Exception\Exception $exception) {
@@ -124,34 +120,47 @@ abstract class EntityDAO
         }
     }
 
-    public function updateOne(EntityInterface $entity)
+    public function deleteOne($entity)
+    {
+        // todo 非 Entity 怎么处理
+        $this->deleteMany(['_id' => $entity->getId()]);
+    }
+
+    /**
+     * @param array $filter
+     * @return int|null
+     */
+    public function deleteMany(array $filter = [])
     {
         $bulk = new BulkWrite(['ordered' => false]);
-
-        $document = $entity->getDocument();
-
-        $bulk->update(['_id' => $document->_id], $document);
+        $bulk->delete($filter);
 
         $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
         $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
 
-        $modifiedCount = $result->getModifiedCount();
+        $deletedCount = $result->getDeletedCount();
 
-        return $modifiedCount;
+        return $deletedCount;
     }
 
-    public function upsertOne(EntityInterface $entity)
+    public function insertOne($entity)
     {
-        if ($entity->getId() && $this->count(['_id' => $entity->getId()])) {
-            return $this->updateOne($entity);
-        } else {
-            return $this->insertOne($entity);
-        }
-    }
+        $bulk = new BulkWrite(['ordered' => false]); // 允许更新报错
 
+        $document = $this->entityConverter->entityToDocument($entity);
+
+        $bulk->insert($document);
+
+        $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
+        $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
+
+        $insertedCount = $result->getInsertedCount();
+
+        return $insertedCount;
+    }
 
     /**
-     * @param EntityInterface[] $entities
+     * @param $entities
      * @return int|null
      */
     public function insertMany($entities)
@@ -159,7 +168,8 @@ abstract class EntityDAO
         $bulk = new BulkWrite(['ordered' => false]); // 允许更新报错
 
         foreach ($entities as $entity) {
-            $document = $entity->getDocument();
+            // todo 将 entity 转换为 document
+            $document = $entity;
             $bulk->insert($document);
         }
 
@@ -171,8 +181,26 @@ abstract class EntityDAO
         return $insertedCount;
     }
 
+
+    public function updateOne($entity)
+    {
+        $bulk = new BulkWrite(['ordered' => false]);
+
+        // todo 将 entity 转换为 document
+        $document = $entity;
+
+        $bulk->update(['_id' => $document->_id], $document);
+
+        $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
+        $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
+
+        $modifiedCount = $result->getModifiedCount();
+
+        return $modifiedCount;
+    }
+
     /**
-     * @param EntityInterface[] $entities
+     * @param $entities
      * @return int|null
      */
     public function updateMany($entities)
@@ -180,7 +208,8 @@ abstract class EntityDAO
         $bulk = new BulkWrite(['ordered' => false]);
 
         foreach ($entities as $entity) {
-            $document = $entity->getDocument();
+            // todo 将 entity 转换为 document
+            $document = $entity;
             $bulk->update(['_id' => $document->_id], $document);
         }
 
@@ -192,8 +221,19 @@ abstract class EntityDAO
         return $modifiedCount;
     }
 
+
+    public function upsertOne($entity)
+    {
+        // todo 如果非 entity 应该怎么处理
+        if ($entity->getId() && $this->count(['_id' => $entity->getId()])) {
+            return $this->updateOne($entity);
+        } else {
+            return $this->insertOne($entity);
+        }
+    }
+
     /**
-     * @param EntityInterface[] $entities
+     * @param $entities
      * @return int|null
      */
     public function upsertMany($entities)
@@ -201,7 +241,8 @@ abstract class EntityDAO
         $bulk = new BulkWrite(['ordered' => false]);
 
         foreach ($entities as $entity) {
-            $document = $entity->getDocument();
+            // todo 将 entity 转换为 document
+            $document = $entity;
 
             if ($entity->getId() && $this->count(['_id' => $entity->getId()])) {
                 $bulk->update(['_id' => $document->_id], $document);
