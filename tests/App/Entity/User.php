@@ -6,17 +6,17 @@
  * Time: 8:56 PM
  */
 
-namespace Tests\Entity;
+namespace Tests\App\Entity;
 
 use Lvinkim\MongoODM\Annotations as ODM;
 use MongoDB\BSON\ObjectId;
-use Tests\Entity\Embed\Company;
-use Tests\Entity\Embed\Member;
+use Tests\App\Entity\Embed\Company;
+use Tests\App\Entity\Embed\Member;
 
 /**
  * Class User
- * @package Tests\Entity
- * @ODM\Entity
+ * @package Tests\App\Entity
+ * @ODM\Entity()
  */
 class User
 {
@@ -59,13 +59,13 @@ class User
     /**
      * 所在公司
      * @var Company
-     * @ODM\EmbedOne(target="Tests\Entity\Embed\Company")
+     * @ODM\EmbedOne(target="Tests\App\Entity\Embed\Company")
      */
     private $company;
     /**
      * 家庭成员
      * @var Member[]
-     * @ODM\EmbedMany(target="Tests\Entity\Embed\Member")
+     * @ODM\EmbedMany(target="Tests\App\Entity\Embed\Member")
      */
     private $families;
     /**

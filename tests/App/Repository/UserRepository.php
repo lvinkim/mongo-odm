@@ -9,7 +9,7 @@
 namespace Tests\App\Repository;
 
 use Lvinkim\MongoODM\Repository;
-use Tests\Entity\User;
+use Tests\App\Entity\User;
 
 class UserRepository extends Repository
 {

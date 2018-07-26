@@ -65,7 +65,6 @@ abstract class Repository
         }
     }
 
-
     /**
      * @param $id
      * @return mixed|null
@@ -112,18 +111,20 @@ abstract class Repository
             $entityClassName = $this->getEntityClassName();
             /** @var \stdClass $document */
             foreach ($documents as $document) {
-                $entity = $this->entityConverter->documentToEntity($document, $entityClassName);
-                yield $entity;
+                yield $this->entityConverter->documentToEntity($document, $entityClassName);
             }
         } catch (\MongoDB\Driver\Exception\Exception $exception) {
             null;
         }
     }
 
+    /**
+     * @param $entity
+     * @return int|null
+     */
     public function deleteOne($entity)
     {
-        // todo 非 Entity 怎么处理
-        $this->deleteMany(['_id' => $entity->getId()]);
+        return $this->deleteMany(['_id' => $this->entityConverter->getId($entity)]);
     }
 
     /**
@@ -143,6 +144,10 @@ abstract class Repository
         return $deletedCount;
     }
 
+    /**
+     * @param $entity
+     * @return int|null
+     */
     public function insertOne($entity)
     {
         $bulk = new BulkWrite(['ordered' => false]); // 允许更新报错
@@ -156,12 +161,11 @@ abstract class Repository
 
         $insertedCount = $result->getInsertedCount();
 
-        $insertedId = null;
         if ($insertedCount) {
-            $insertedId = $document->_id;
+            $this->entityConverter->setId($entity, $document->_id);
         }
 
-        return $insertedId;
+        return $insertedCount;
     }
 
     /**
@@ -186,13 +190,15 @@ abstract class Repository
     }
 
 
+    /**
+     * @param $entity
+     * @return int|null
+     */
     public function updateOne($entity)
     {
         $bulk = new BulkWrite(['ordered' => false]);
 
-        // todo 将 entity 转换为 document
-        $document = $entity;
-
+        $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
         $bulk->update(['_id' => $document->_id], $document);
 
         $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
@@ -212,8 +218,7 @@ abstract class Repository
         $bulk = new BulkWrite(['ordered' => false]);
 
         foreach ($entities as $entity) {
-            // todo 将 entity 转换为 document
-            $document = $entity;
+            $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
             $bulk->update(['_id' => $document->_id], $document);
         }
 
@@ -226,10 +231,14 @@ abstract class Repository
     }
 
 
+    /**
+     * @param $entity
+     * @return int|null
+     */
     public function upsertOne($entity)
     {
-        // todo 如果非 entity 应该怎么处理
-        if ($entity->getId() && $this->count(['_id' => $entity->getId()])) {
+        $entityId = $this->entityConverter->getId($entity);
+        if ($entityId && $this->count(['_id' => $entityId])) {
             return $this->updateOne($entity);
         } else {
             return $this->insertOne($entity);
@@ -245,10 +254,11 @@ abstract class Repository
         $bulk = new BulkWrite(['ordered' => false]);
 
         foreach ($entities as $entity) {
-            // todo 将 entity 转换为 document
-            $document = $entity;
 
-            if ($entity->getId() && $this->count(['_id' => $entity->getId()])) {
+            $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+
+            $entityId = $this->entityConverter->getId($entity);
+            if ($entityId && $this->count(['_id' => $entityId])) {
                 $bulk->update(['_id' => $document->_id], $document);
             } else {
                 $bulk->insert($document);

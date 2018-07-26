@@ -6,7 +6,7 @@
  * Time: 10:19 PM
  */
 
-namespace Tests\Entity\Embed;
+namespace Tests\App\Entity\Embed;
 
 
 use Lvinkim\MongoODM\Annotations as ODM;

@@ -149,3 +149,4 @@ $userDAO->insertOne($user);
 
 ```
 
+### 特性说明

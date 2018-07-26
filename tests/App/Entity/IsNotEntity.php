@@ -8,6 +8,8 @@
 
 namespace Tests\App\Entity;
 
+use MongoDB\BSON\ObjectId;
+
 
 /**
  * Class IsNotEntity
@@ -15,5 +17,10 @@ namespace Tests\App\Entity;
  */
 class IsNotEntity
 {
-    public $id;
+    /**
+     * @var ObjectId
+     */
+    public $_id;
+
+    public $name;
 }

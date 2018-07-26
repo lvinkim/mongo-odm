@@ -62,8 +62,9 @@ class AnnotationParser
     }
 
     /**
+     * 获取属性的 Field 声明
      * @param $property
-     * @return mixed
+     * @return null|AbstractField
      */
     public function getPropertyAnnotation($property)
     {

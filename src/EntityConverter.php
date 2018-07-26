@@ -32,14 +32,63 @@ class EntityConverter
         $this->annotationParser = new AnnotationParser();
     }
 
-    public function getId($entity, string $entityClassName)
+    /**
+     * @param $entity
+     * @return mixed|null
+     */
+    public function getId($entity)
     {
-        // todo
+        if (!$this->annotationParser->isEntityClass($entity)) {
+            return $entity->_id ?? null;
+        }
+        try {
+            $reflectClass = new \ReflectionClass($entity);
+        } catch (\Exception $exception) {
+            return null;
+        }
+
+        foreach ($reflectClass->getProperties() as $entityField) {
+            if ($entityField->isStatic()) {
+                continue;
+            }
+            $annotation = $this->annotationParser->getPropertyAnnotation($entityField);
+            if (null === $annotation || !$annotation->id) {
+                continue;
+            }
+            $entityField->setAccessible(true);
+            return $entityField->getValue($entity);
+        }
+        return null;
     }
 
-    public function setId($document, string $entityClassName)
+    /**
+     * @param $entity
+     * @param $documentId
+     * @return bool
+     */
+    public function setId($entity, $documentId)
     {
-        // todo
+        if (!$this->annotationParser->isEntityClass($entity)) {
+            return false;
+        }
+        try {
+            $reflectClass = new \ReflectionClass($entity);
+        } catch (\Exception $exception) {
+            return false;
+        }
+        foreach ($reflectClass->getProperties() as $entityField) {
+            if ($entityField->isStatic()) {
+                continue;
+            }
+            $annotation = $this->annotationParser->getPropertyAnnotation($entityField);
+            if (null === $annotation || !$annotation->id) {
+                continue;
+            }
+            $entityField->setAccessible(true);
+            $entityField->setValue($entity, $documentId);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -68,6 +117,9 @@ class EntityConverter
             }
 
             $annotation = $this->annotationParser->getPropertyAnnotation($documentProperty);
+            if (null === $annotation) {
+                continue;
+            }
 
             $propertyName = $annotation->name ?? $documentProperty->getName();
             if ($annotation->id) {
@@ -106,6 +158,9 @@ class EntityConverter
                 continue;
             }
             $annotation = $this->annotationParser->getPropertyAnnotation($entityField);
+            if (null === $annotation) {
+                continue;
+            }
 
             $entityField->setAccessible(true);
 
