@@ -10,9 +10,12 @@ namespace Tests\Functional;
 
 
 use Lvinkim\MongoODM\AnnotationParser;
+use Lvinkim\MongoODM\Annotations\AbstractField;
+use Lvinkim\MongoODM\Annotations\Field;
 use PHPUnit\Framework\TestCase;
 use Tests\App\Entity\IsEntity;
 use Tests\App\Entity\IsNotEntity;
+use Tests\App\Entity\User;
 
 class AnnotationParserTest extends TestCase
 {
@@ -42,6 +45,36 @@ class AnnotationParserTest extends TestCase
 
         $isEntity = $this->annotationParser->isEntityClass((new IsNotEntity()));
         $this->assertEquals(false, $isEntity);
+
+    }
+
+    /**
+     * @throws \ReflectionException
+     */
+    public function testGetPropertyAnnotation()
+    {
+
+        $reflectClass = new \ReflectionClass(User::class);
+
+        $types = array_merge([
+            'id',
+            'embedOne',
+            'embedMany',
+        ], Field::TYPES);
+
+        $parserTypes = [];
+        foreach ($reflectClass->getProperties() as $entityField) {
+            if ($entityField->isStatic()) {
+                continue;
+            }
+            $annotation = $this->annotationParser->getPropertyAnnotation($entityField);
+
+            if ($annotation instanceof AbstractField) {
+                $parserTypes[$annotation->type] = 1;
+            }
+        }
+
+        $this->assertEquals(count($types), count($parserTypes));
 
     }
 }

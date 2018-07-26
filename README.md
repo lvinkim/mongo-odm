@@ -5,10 +5,8 @@
 $ composer require lvinkim/mongo-odm
 ```
 
-### TODO
+### 方法概述
 
-#### 1. 命名更改
-* DAO 更名为 Repository
 * 通过 ID 获取单个 Entity 的方法：findOneById($id)
 * 通过 filter 获取单个 Entity 的方法：findOne($filter)
 * 通过 $filter 获取多个 Entity 的方法：findMany($filter, ...)
@@ -21,12 +19,6 @@ $ composer require lvinkim/mongo-odm
 * 插入或更新单个 Entity 的方法：upsertOne($entity)
 * 插入或更新多个 Entity 的方法：upsertMany($entities)
 
-#### 2. 待实现功能
-* 支持 public 属性
-* 数据库 _id 在 Entity 中默认命名为 id
-* 支持 GridFS 
-* Entity 类不使用继承的方法，使用独立的 Service 完成 Entity 与 Document 的转换
-
 ### 使用说明
 
 #### 步骤1. 定义 Entity
@@ -36,13 +28,17 @@ use Lvinkim\MongoODM\Annotations as ODM;
 use Lvinkim\MongoODM\Entity;
 use MongoDB\BSON\ObjectId;
 
+/**
+ * Class User
+ * @ODM\Entity()
+ */
 class User extends Entity
 {
     /**
      * @var ObjectId
      * @ODM\Id
      */
-    private $_id;
+    private $id;
     /**
      * 名称
      * @var string
@@ -55,15 +51,15 @@ class User extends Entity
      */
     public function getId(): ?ObjectId
     {
-        return $this->_id;
+        return $this->id;
     }
 
     /**
-     * @param mixed $id
+     * @param ObjectId $id
      */
-    public function setId($id): void
+    public function setId(ObjectId $id): void
     {
-        $this->_id = $id;
+        $this->id = $id;
     }
 
     /**
@@ -84,12 +80,12 @@ class User extends Entity
 }
 ```
 
-#### 步骤2. 定义 DAO 类
+#### 步骤2. 定义 Repository 类
 
 ```php
-use Lvinkim\MongoODM\EntityDAO;
+use Lvinkim\MongoODM\Repository;
 
-class UserDAO extends EntityDAO
+class UserRepository extends Repository
 {
 
     /**
@@ -105,7 +101,7 @@ class UserDAO extends EntityDAO
      * 返回数据表的对应实体类名
      * @return string
      */
-    protected function getEntity(): string
+    protected function getEntityClassName(): string
     {
         return User::class;
     }
@@ -119,34 +115,17 @@ class UserDAO extends EntityDAO
 use Lvinkim\MongoODM\DocumentManager;
 use MongoDB\Driver\Manager;
 
-// 必须添加这行代码
-\Doctrine\Common\Annotations\AnnotationRegistry::registerUniqueLoader(function () {
-    return true;
-});
-
 $uri = 'mongodb://docker.for.mac.localhost';
 $driver = new Manager($uri);
 
 $documentManager = new DocumentManager($driver);
-$userDAO = $documentManager->getDAO(UserDAO::class);
+$userRepository = $documentManager->getRepository(UserRepository::class);
 
 // 插入
 $user = new User();
 $user->setName("your name");
-$userDAO->insertOne($user);
+$userRepository->insertOne($user);
 
-// 更多方法.... 
-// 计数 - count,
-// 删除 - delete,
-// 插入单个 - insertOne,
-// 查找单个 - findOne,
-// 查找多个 - find,
-// 更新单个 - updateOne,
-// 插入或更新单个 - upsertOne,
-// 批量插入 - insertMany,
-// 批量更新  - updateMany,
-// 批量插入或更新 - upsertMany
+// 更多方法.... 参见 Functional/RepositoryTest.php 的各用例
 
 ```
-
-### 特性说明
