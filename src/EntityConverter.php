@@ -189,6 +189,9 @@ class EntityConverter
             case 'string':
                 $fieldValue = strval($propertyValue);
                 break;
+            case 'bool':
+                $fieldValue = boolval($propertyValue);
+                break;
             case 'int':
                 $fieldValue = intval($propertyValue);
                 break;
@@ -287,6 +290,9 @@ class EntityConverter
         switch ($fieldType) {
             case 'string':
                 $propertyValue = strval($fieldValue);
+                break;
+            case 'bool':
+                $propertyValue = boolval($fieldValue);
                 break;
             case 'int':
                 $propertyValue = intval($fieldValue);

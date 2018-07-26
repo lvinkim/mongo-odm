@@ -17,6 +17,7 @@ final class Field extends AbstractField
 {
     const TYPES = [
         'string',
+        'bool',
         'int',
         'float',
         'array',

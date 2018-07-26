@@ -32,6 +32,13 @@ class User
      * @ODM\Field(type="string")
      */
     private $name;
+
+    /**
+     * @var bool
+     * @ODM\Field(type="bool")
+     */
+    private $status;
+
     /**
      * 年龄
      * @var int
@@ -217,5 +224,21 @@ class User
     public function setRemark($remark): void
     {
         $this->remark = $remark;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isStatus(): bool
+    {
+        return $this->status;
+    }
+
+    /**
+     * @param bool $status
+     */
+    public function setStatus(bool $status): void
+    {
+        $this->status = $status;
     }
 }
