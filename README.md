@@ -32,7 +32,7 @@ use MongoDB\BSON\ObjectId;
  * Class User
  * @ODM\Entity()
  */
-class User extends Entity
+class User
 {
     /**
      * @var ObjectId
