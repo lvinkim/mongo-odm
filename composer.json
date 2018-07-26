@@ -1,7 +1,7 @@
 {
   "name": "lvinkim/mongo-odm",
   "require": {
-    "php": ">=7.0",
+    "php": ">=7.1",
     "doctrine/annotations": "^1.6"
   },
   "require-dev": {
