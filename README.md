@@ -1,5 +1,8 @@
 # mongo-odm 
 
+> 支持版本
+> mongodb 3.2.0 以上
+
 ### 安装
 ```
 $ composer require lvinkim/mongo-odm

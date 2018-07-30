@@ -203,7 +203,7 @@ class EntityConverter
                 break;
             case 'date':
                 /** @var UTCDateTime $propertyValue */
-                $fieldValue = $propertyValue->toDateTime();
+                $fieldValue = ($propertyValue instanceof UTCDateTime) ? $propertyValue->toDateTime() : $propertyValue;
                 break;
             case 'id':
                 /** @var ObjectId $propertyValue */
@@ -305,7 +305,7 @@ class EntityConverter
                 break;
             case 'date':
                 /** @var \DateTime $fieldValue */
-                $propertyValue = new UTCDateTime($fieldValue);
+                $propertyValue = ($fieldValue instanceof \DateTime) ? new UTCDateTime($fieldValue) : $fieldValue;
                 break;
             case 'id':
                 $propertyValue = $fieldValue instanceof ObjectId ? $fieldValue : new ObjectId();
