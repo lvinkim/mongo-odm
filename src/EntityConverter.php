@@ -213,7 +213,7 @@ class EntityConverter
                 $fieldValue = $this->propertyToEmbedOne($propertyValue, $annotation);
                 break;
             case 'embedMany':
-                $fieldValue = $this->propertyToEmbedMany($propertyValue, $annotation);
+                $fieldValue = $this->propertyToEmbedMany((array)$propertyValue, $annotation);
                 break;
             case 'raw':
                 $fieldValue = $propertyValue;
@@ -314,7 +314,7 @@ class EntityConverter
                 $propertyValue = $this->embedOneToProperty($fieldValue, $annotation);
                 break;
             case 'embedMany':
-                $propertyValue = $this->embedManyToProperty($fieldValue, $annotation);
+                $propertyValue = $this->embedManyToProperty((array)$fieldValue, $annotation);
                 break;
             case 'raw':
             default:
