@@ -250,7 +250,7 @@ class EntityConverter
             /** @var AbstractField $annotation */
             $annotation = $this->annotationParser->getPropertyAnnotation($property);
 
-            $propertyName = $property->getName();
+            $propertyName = $annotation->name ?? $property->getName();
             $propertyValue = $document->{$propertyName} ?? null;
             $propertyValue = $this->propertyToField($propertyValue, $annotation);
 
@@ -350,7 +350,7 @@ class EntityConverter
 
             $annotation = $this->annotationParser->getPropertyAnnotation($field);
 
-            $propertyName = $field->getName();
+            $propertyName = $annotation->name ?? $field->getName();
 
             try {
                 $reflectProperty = new \ReflectionProperty($embed, $propertyName);
@@ -359,6 +359,8 @@ class EntityConverter
                 $fieldValue = $reflectProperty->getValue($embed);
 
                 $propertyValue = $this->fieldToProperty($fieldValue, $annotation);
+
+
             } catch (\Exception $exception) {
                 $propertyValue = null;
             }
