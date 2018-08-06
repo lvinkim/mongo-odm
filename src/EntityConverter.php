@@ -199,7 +199,7 @@ class EntityConverter
                 $fieldValue = floatval($propertyValue);
                 break;
             case 'array':
-                $fieldValue = is_array($propertyValue) ? $propertyValue : settype($propertyValue, 'array');
+                $fieldValue = is_array($propertyValue) ? $propertyValue : (array)($propertyValue);
                 break;
             case 'date':
                 /** @var UTCDateTime $propertyValue */
@@ -301,7 +301,7 @@ class EntityConverter
                 $propertyValue = floatval($fieldValue);
                 break;
             case 'array':
-                $propertyValue = is_array($fieldValue) ? $fieldValue : settype($fieldValue, 'array');
+                $propertyValue = is_array($fieldValue) ? $fieldValue : (array)($fieldValue);
                 break;
             case 'date':
                 /** @var \DateTime $fieldValue */
