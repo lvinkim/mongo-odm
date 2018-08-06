@@ -228,17 +228,17 @@ class EntityConverter
     /**
      * 由 Mongodb Document 字段设置成对应的 Entity EmbedOne 对象
      * @param AbstractField $annotation
-     * @param $propertyValue
+     * @param $document
      * @return mixed
      */
-    private function propertyToEmbedOne($propertyValue, AbstractField $annotation)
+    private function propertyToEmbedOne($document, AbstractField $annotation)
     {
         $className = $annotation->target;
 
         try {
             $reflectClass = new \ReflectionClass($className);
         } catch (\Exception $exception) {
-            return $propertyValue;
+            return $document;
         }
 
         $embed = new $className;
