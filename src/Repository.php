@@ -87,14 +87,16 @@ abstract class Repository
         return null;
     }
 
+
     /**
      * @param array $filter
      * @param array|null $sort
      * @param int|null $skip
      * @param int|null $limit
+     * @param array $options
      * @return \Generator
      */
-    public function findMany(array $filter = [], array $sort = null, int $skip = null, int $limit = null)
+    public function findMany(array $filter = [], array $sort = null, int $skip = null, int $limit = null, array $options = [])
     {
         list($dbName, $collectionName) = explode('.', $this->getNamespace(), 2);
         $commandOpt = ['find' => $collectionName];
@@ -102,6 +104,10 @@ abstract class Repository
         $sort ? $commandOpt['sort'] = $sort : null;
         $skip ? $commandOpt['skip'] = $skip : null;
         $limit ? $commandOpt['limit'] = $limit : null;
+
+        if ($options) {
+            $commandOpt = array_merge($commandOpt, $options);
+        }
 
         $queryCommand = new Command($commandOpt);
 
