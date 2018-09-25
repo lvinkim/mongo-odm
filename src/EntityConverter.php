@@ -203,7 +203,7 @@ class EntityConverter
                 break;
             case 'date':
                 /** @var UTCDateTime $propertyValue */
-                $fieldValue = ($propertyValue instanceof UTCDateTime) ? $propertyValue->toDateTime() : $propertyValue;
+                $fieldValue = ($propertyValue instanceof UTCDateTime) ? $propertyValue->toDateTime()->setTimezone(new \DateTimeZone(date_default_timezone_get())) : $propertyValue;
                 break;
             case 'id':
                 /** @var ObjectId $propertyValue */
