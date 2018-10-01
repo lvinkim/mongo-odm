@@ -2,16 +2,16 @@
 /**
  * Created by PhpStorm.
  * User: lvinkim
- * Date: 23/07/2018
- * Time: 11:08 PM
+ * Date: 01/10/2018
+ * Time: 10:14 AM
  */
 
 namespace Lvinkim\MongoODM\Tests\App\Repository;
 
-use Lvinkim\MongoODM\Repository;
-use Lvinkim\MongoODM\Tests\App\Entity\User;
 
-class UserRepository extends Repository
+use Lvinkim\MongoODM\Repository;
+
+class PersonRepository extends Repository
 {
     /**
      * 返回数据库中的表名, 例如: user
@@ -19,14 +19,6 @@ class UserRepository extends Repository
      */
     protected function collection(): string
     {
-        return "user";
-    }
-
-    /**
-     * @return string
-     */
-    protected function getEntityClassName()
-    {
-        return User::class;
+        return "person";
     }
 }

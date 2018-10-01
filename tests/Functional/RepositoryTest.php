@@ -6,19 +6,19 @@
  * Time: 3:53 PM
  */
 
-namespace Tests\Functional;
+namespace Lvinkim\MongoODM\Tests\Functional;
 
 
 use Lvinkim\MongoODM\DocumentManager;
 use MongoDB\BSON\ObjectId;
 use MongoDB\Driver\Manager;
 use PHPUnit\Framework\TestCase;
-use Tests\App\Entity\Embed\Address;
-use Tests\App\Entity\Embed\Company;
-use Tests\App\Entity\Embed\Member;
-use Tests\App\Entity\User;
-use Tests\App\Repository\IsEntityWithStringRepository;
-use Tests\App\Repository\UserRepository;
+use Lvinkim\MongoODM\Tests\App\Entity\Embed\Address;
+use Lvinkim\MongoODM\Tests\App\Entity\Embed\Company;
+use Lvinkim\MongoODM\Tests\App\Entity\Embed\Member;
+use Lvinkim\MongoODM\Tests\App\Entity\User;
+use Lvinkim\MongoODM\Tests\App\Repository\IsEntityWithStringRepository;
+use Lvinkim\MongoODM\Tests\App\Repository\UserRepository;
 
 class RepositoryTest extends TestCase
 {
@@ -28,9 +28,9 @@ class RepositoryTest extends TestCase
 
     public static function setUpBeforeClass()
     {
-        $uri = 'mongodb://docker.for.mac.localhost:27017';
+        $uri = 'mongodb://localhost:27017';
         $manager = new Manager($uri);
-        self::$documentManager = new DocumentManager($manager);
+        self::$documentManager = new DocumentManager($manager, "test");
     }
 
     /** @var UserRepository */

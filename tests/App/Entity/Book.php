@@ -6,14 +6,14 @@
  * Time: 5:37 PM
  */
 
-namespace Tests\App\Entity;
+namespace Lvinkim\MongoODM\Tests\App\Entity;
 
 use Lvinkim\MongoODM\Annotations as ODM;
 use MongoDB\BSON\ObjectId;
 
 /**
  * Class Book
- * @package Tests\App\Entity
+ * @package Lvinkim\MongoODM\Tests\App\Entity
  * @ODM\Entity()
  */
 class Book

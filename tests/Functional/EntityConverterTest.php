@@ -6,13 +6,13 @@
  * Time: 3:52 PM
  */
 
-namespace Tests\Functional;
+namespace Lvinkim\MongoODM\Tests\Functional;
 
 use Lvinkim\MongoODM\EntityConverter;
 use MongoDB\BSON\ObjectId;
 use PHPUnit\Framework\TestCase;
-use Tests\App\Entity\IsEntity;
-use Tests\App\Entity\IsNotEntity;
+use Lvinkim\MongoODM\Tests\App\Entity\IsEntity;
+use Lvinkim\MongoODM\Tests\App\Entity\IsNotEntity;
 
 class EntityConverterTest extends TestCase
 {

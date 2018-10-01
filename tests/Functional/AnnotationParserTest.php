@@ -6,16 +6,16 @@
  * Time: 9:01 PM
  */
 
-namespace Tests\Functional;
+namespace Lvinkim\MongoODM\Tests\Functional;
 
 
 use Lvinkim\MongoODM\AnnotationParser;
 use Lvinkim\MongoODM\Annotations\AbstractField;
 use Lvinkim\MongoODM\Annotations\Field;
 use PHPUnit\Framework\TestCase;
-use Tests\App\Entity\IsEntity;
-use Tests\App\Entity\IsNotEntity;
-use Tests\App\Entity\User;
+use Lvinkim\MongoODM\Tests\App\Entity\IsEntity;
+use Lvinkim\MongoODM\Tests\App\Entity\IsNotEntity;
+use Lvinkim\MongoODM\Tests\App\Entity\User;
 
 class AnnotationParserTest extends TestCase
 {

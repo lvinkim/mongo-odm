@@ -6,7 +6,7 @@
  * Time: 11:12 PM
  */
 
-namespace Tests\App\Entity;
+namespace Lvinkim\MongoODM\Tests\App\Entity;
 
 
 use Lvinkim\MongoODM\Annotations as ODM;
@@ -14,7 +14,7 @@ use MongoDB\BSON\ObjectId;
 
 /**
  * Class IsEntityWithString
- * @package Tests\App\Entity
+ * @package Lvinkim\MongoODM\Tests\App\Entity
  */
 class IsNotEntityWithString
 {

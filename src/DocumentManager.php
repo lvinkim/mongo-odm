@@ -20,9 +20,13 @@ class DocumentManager
     /** @var Manager */
     private $manager;
 
-    public function __construct(Manager $manager)
+    /** @var string */
+    private $database;
+
+    public function __construct(Manager $manager, string $database)
     {
         $this->manager = $manager;
+        $this->database = $database;
     }
 
     public function getManager(): Manager
@@ -32,6 +36,6 @@ class DocumentManager
 
     public function getRepository($className): Repository
     {
-        return new $className($this);
+        return new $className($this, $this->database);
     }
 }

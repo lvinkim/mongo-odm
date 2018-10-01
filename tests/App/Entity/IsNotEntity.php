@@ -6,14 +6,14 @@
  * Time: 4:36 PM
  */
 
-namespace Tests\App\Entity;
+namespace Lvinkim\MongoODM\Tests\App\Entity;
 
 use MongoDB\BSON\ObjectId;
 
 
 /**
  * Class IsNotEntity
- * @package Tests\App\Entity
+ * @package Lvinkim\MongoODM\Tests\App\Entity
  */
 class IsNotEntity
 {

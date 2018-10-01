@@ -6,7 +6,7 @@
  * Time: 10:10 PM
  */
 
-namespace Tests\App\Entity\Embed;
+namespace Lvinkim\MongoODM\Tests\App\Entity\Embed;
 
 
 use Lvinkim\MongoODM\Annotations as ODM;
@@ -28,7 +28,7 @@ class Company
     /**
      * 公司地址
      * @var Address
-     * @ODM\EmbedOne(target="Tests\App\Entity\Embed\Address")
+     * @ODM\EmbedOne(target="Lvinkim\MongoODM\Tests\App\Entity\Embed\Address")
      */
     private $address;
 

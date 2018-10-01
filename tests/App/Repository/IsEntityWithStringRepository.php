@@ -6,11 +6,11 @@
  * Time: 11:52 PM
  */
 
-namespace Tests\App\Repository;
+namespace Lvinkim\MongoODM\Tests\App\Repository;
 
 
 use Lvinkim\MongoODM\Repository;
-use Tests\App\Entity\IsEntityWithString;
+use Lvinkim\MongoODM\Tests\App\Entity\IsEntityWithString;
 
 class IsEntityWithStringRepository extends Repository
 {
@@ -19,9 +19,9 @@ class IsEntityWithStringRepository extends Repository
      * 返回数据库中的表名, 例如: db.user
      * @return string
      */
-    protected function getNamespace(): string
+    protected function collection(): string
     {
-        return 'test.entity_string';
+        return 'entity_string';
     }
 
     /**

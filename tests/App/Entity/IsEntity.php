@@ -6,7 +6,7 @@
  * Time: 4:36 PM
  */
 
-namespace Tests\App\Entity;
+namespace Lvinkim\MongoODM\Tests\App\Entity;
 
 use Lvinkim\MongoODM\Annotations as ODM;
 use MongoDB\BSON\ObjectId;
@@ -14,7 +14,7 @@ use MongoDB\BSON\ObjectId;
 
 /**
  * Class IsEntity
- * @package Tests\App\Entity
+ * @package Lvinkim\MongoODM\Tests\App\Entity
  * @ODM\Entity
  */
 class IsEntity

@@ -6,11 +6,11 @@
  * Time: 5:41 PM
  */
 
-namespace Tests\App\Repository;
+namespace Lvinkim\MongoODM\Tests\App\Repository;
 
 
 use Lvinkim\MongoODM\Repository;
-use Tests\App\Entity\Book;
+use Lvinkim\MongoODM\Tests\App\Entity\Book;
 
 class BookRepository extends Repository
 {

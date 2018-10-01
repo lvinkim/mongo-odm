@@ -9,6 +9,7 @@
 namespace Lvinkim\MongoODM;
 
 
+use MongoDB\BSON\ObjectId;
 use MongoDB\Driver\BulkWrite;
 use MongoDB\Driver\Command;
 use MongoDB\Driver\WriteConcern;
@@ -26,28 +27,60 @@ abstract class Repository
     /** @var EntityConverter */
     private $entityConverter;
 
+    protected $database = "";
+
+    /** @var bool */
+    protected $hydrated = true;
+
     /**
      * Repository constructor.
      * @param DocumentManager $documentManager
+     * @param string $database
      * @throws \Doctrine\Common\Annotations\AnnotationException
      */
-    public function __construct(DocumentManager $documentManager)
+    public function __construct(DocumentManager $documentManager, string $database)
     {
         $this->documentManager = $documentManager;
+        $this->database = $database;
         $this->entityConverter = new EntityConverter();
     }
 
     /**
-     * 返回数据库中的表名, 例如: db.user
+     * 返回数据库中的表名, 例如: user
      * @return string
      */
-    abstract protected function getNamespace(): string;
+    abstract protected function collection(): string;
 
     /**
-     * 返回数据表的对应实体类名
+     * 重写此方法，返回数据表的对应实体类名，即可自动关联实体类
      * @return string
      */
-    abstract protected function getEntityClassName(): string;
+    protected function getEntityClassName()
+    {
+        return "";
+    }
+
+    /**
+     * @param bool $hydrated
+     * @return $this
+     */
+    public function hydrate($hydrated = true)
+    {
+        if ($hydrated && $this->getEntityClassName()) {
+            $this->hydrated = true;
+        } else {
+            $this->hydrated = false;
+        }
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isHydrated(): bool
+    {
+        return boolval($this->hydrated);
+    }
 
     /**
      * @param array $filter
@@ -55,10 +88,9 @@ abstract class Repository
      */
     public function count(array $filter = [])
     {
-        list($dbName, $collectionName) = explode('.', $this->getNamespace(), 2);
-        $command = new Command(['count' => $collectionName, 'query' => $filter]);
+        $command = new Command(['count' => $this->collection(), 'query' => $filter]);
         try {
-            $result = $this->documentManager->getManager()->executeCommand($dbName, $command)->toArray()[0];
+            $result = $this->documentManager->getManager()->executeCommand($this->database, $command)->toArray()[0];
             return $result->n ?? 0;
         } catch (\MongoDB\Driver\Exception\Exception $exception) {
             return false;
@@ -87,7 +119,6 @@ abstract class Repository
         return null;
     }
 
-
     /**
      * @param array $filter
      * @param array|null $sort
@@ -98,8 +129,7 @@ abstract class Repository
      */
     public function findMany(array $filter = [], array $sort = null, int $skip = null, int $limit = null, array $options = [])
     {
-        list($dbName, $collectionName) = explode('.', $this->getNamespace(), 2);
-        $commandOpt = ['find' => $collectionName];
+        $commandOpt = ['find' => $this->collection(), "noCursorTimeout" => true];
         $filter ? $commandOpt['filter'] = $filter : null;
         $sort ? $commandOpt['sort'] = $sort : null;
         $skip ? $commandOpt['skip'] = $skip : null;
@@ -112,12 +142,16 @@ abstract class Repository
         $queryCommand = new Command($commandOpt);
 
         try {
-            $documents = $this->documentManager->getManager()->executeCommand($dbName, $queryCommand);
+            $documents = $this->documentManager->getManager()->executeCommand($this->database, $queryCommand);
 
             $entityClassName = $this->getEntityClassName();
             /** @var \stdClass $document */
             foreach ($documents as $document) {
-                yield $this->entityConverter->documentToEntity($document, $entityClassName);
+                if ($this->isHydrated()) {
+                    yield $this->entityConverter->documentToEntity($document, $entityClassName);
+                } else {
+                    yield $document;
+                }
             }
         } catch (\MongoDB\Driver\Exception\Exception $exception) {
             null;
@@ -130,7 +164,12 @@ abstract class Repository
      */
     public function deleteOne($entity)
     {
-        return $this->deleteMany(['_id' => $this->entityConverter->getId($entity)]);
+        if ($this->isHydrated()) {
+            $id = $this->entityConverter->getId($entity);
+        } else {
+            $id = $entity->_id ?? false;
+        }
+        return $this->deleteMany(['_id' => $id]);
     }
 
     /**
@@ -158,17 +197,24 @@ abstract class Repository
     {
         $bulk = new BulkWrite(['ordered' => false]); // 允许更新报错
 
-        $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+        if ($this->isHydrated()) {
+            $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+        } else {
+            $document = $this->padDocumentId($entity);
+        }
 
         $bulk->insert($document);
 
         $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
+
         $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
 
         $insertedCount = $result->getInsertedCount();
 
         if ($insertedCount) {
-            $this->entityConverter->setId($entity, $document->_id);
+            if ($this->isHydrated()) {
+                $this->entityConverter->setId($entity, $document->_id);
+            }
         }
 
         return $insertedCount;
@@ -183,18 +229,22 @@ abstract class Repository
         $bulk = new BulkWrite(['ordered' => false]); // 允许更新报错
 
         foreach ($entities as $entity) {
-            $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+            if ($this->isHydrated()) {
+                $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+            } else {
+                $document = $this->padDocumentId($entity);
+            }
             $bulk->insert($document);
         }
 
         $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
+
         $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
 
         $insertedCount = $result->getInsertedCount();
 
         return $insertedCount;
     }
-
 
     /**
      * @param $entity
@@ -204,7 +254,12 @@ abstract class Repository
     {
         $bulk = new BulkWrite(['ordered' => false]);
 
-        $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+        if ($this->isHydrated()) {
+            $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+        } else {
+            $document = $this->padDocumentId($entity);
+        }
+
         $bulk->update(['_id' => $document->_id], $document);
 
         $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
@@ -224,7 +279,11 @@ abstract class Repository
         $bulk = new BulkWrite(['ordered' => false]);
 
         foreach ($entities as $entity) {
-            $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+            if ($this->isHydrated()) {
+                $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+            } else {
+                $document = $this->padDocumentId($entity);
+            }
             $bulk->update(['_id' => $document->_id], $document);
         }
 
@@ -236,6 +295,22 @@ abstract class Repository
         return $modifiedCount;
     }
 
+    /**
+     * @param array $filter
+     * @param $doc
+     * @return int|null
+     */
+    public function updateField(array $filter = [], $doc)
+    {
+        $bulk = new BulkWrite(['ordered' => false]);
+        $bulk->update($filter, ['$set' => $doc], ['multi' => true, 'upsert' => false]);
+
+        $writeConcern = new WriteConcern(WriteConcern::MAJORITY, 1000);
+        $result = $this->documentManager->getManager()->executeBulkWrite($this->getNamespace(), $bulk, $writeConcern);
+        $modifiedCount = $result->getModifiedCount();
+
+        return $modifiedCount;
+    }
 
     /**
      * @param $entity
@@ -243,7 +318,13 @@ abstract class Repository
      */
     public function upsertOne($entity)
     {
-        $entityId = $this->entityConverter->getId($entity);
+        if ($this->isHydrated()) {
+            $entityId = $this->entityConverter->getId($entity);
+        } else {
+            $entity = $this->padDocumentId($entity);
+            $entityId = $entity->_id;
+        }
+
         if ($entityId && $this->count(['_id' => $entityId])) {
             return $this->updateOne($entity);
         } else {
@@ -261,9 +342,14 @@ abstract class Repository
 
         foreach ($entities as $entity) {
 
-            $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+            if ($this->isHydrated()) {
+                $document = $this->entityConverter->entityToDocument($entity, $this->getEntityClassName());
+                $entityId = $this->entityConverter->getId($entity);
+            } else {
+                $document = $this->padDocumentId($entity);
+                $entityId = $document->_id;
+            }
 
-            $entityId = $this->entityConverter->getId($entity);
             if ($entityId && $this->count(['_id' => $entityId])) {
                 $bulk->update(['_id' => $document->_id], $document);
             } else {
@@ -277,5 +363,23 @@ abstract class Repository
         $insertedCount = $result->getInsertedCount();
 
         return ($modifiedCount + $insertedCount);
+    }
+
+    /**
+     * @return string
+     */
+    protected function getNamespace()
+    {
+        return "{$this->database}.{$this->collection()}";
+    }
+
+    /**
+     * @param $document
+     * @return mixed
+     */
+    protected function padDocumentId($document)
+    {
+        !isset($document->_id) ? $document->_id = new ObjectId() : null;
+        return $document;
     }
 }
