@@ -178,6 +178,7 @@ class RepositoryTest extends TestCase
      * 根据 id 查找单条记录
      * @param User $user
      * @depends testUserInsertOne
+     * @throws \ErrorException
      */
     public function testUserFindOneById(User $user)
     {
@@ -191,6 +192,7 @@ class RepositoryTest extends TestCase
      * 根据 filter 条件查找单条记录
      * @param User $user
      * @depends testUserInsertOne
+     * @throws \ErrorException
      */
     public function testUserFindOne(User $user)
     {
@@ -208,6 +210,7 @@ class RepositoryTest extends TestCase
      * 根据 filter 条件查找多条记录
      * @param User $user
      * @depends testUserInsertOne
+     * @throws \ErrorException
      */
     public function testUserFindMany(User $user)
     {
@@ -233,6 +236,7 @@ class RepositoryTest extends TestCase
      * 删除单个 entity
      * @param User $user
      * @depends testUserInsertOne
+     * @throws \ErrorException
      */
     public function testUserDeleteOne(User $user)
     {
@@ -264,6 +268,7 @@ class RepositoryTest extends TestCase
      * 更新单个 entity
      * @param User $user
      * @depends testUserInsertOne
+     * @throws \ErrorException
      */
     public function testUserUpdateOne(User $user)
     {
@@ -282,6 +287,7 @@ class RepositoryTest extends TestCase
     /**
      * 批量更新多个 entities
      * @depends testUserInsertMany
+     * @throws \ErrorException
      */
     public function testUserUpdateMany()
     {
@@ -359,6 +365,7 @@ class RepositoryTest extends TestCase
      * 插入或更新单个 entity (更新的情况)
      * @param User $user
      * @depends testUserInsertOne
+     * @throws \ErrorException
      */
     public function testUserUpsertOneWithUpdate(User $user)
     {
@@ -376,6 +383,7 @@ class RepositoryTest extends TestCase
     /**
      * 插入或更新多个 entity
      * @depends testUserInsertMany
+     * @throws \ErrorException
      */
     public function testUserUpsertMany()
     {
@@ -433,4 +441,43 @@ class RepositoryTest extends TestCase
         $this->assertEquals($foundCount + $insertCount, $upsertCount);
     }
 
+    /**
+     * @depends testUserInsertMany
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public function testDistinct()
+    {
+        $key = "name";
+        $values = $this->userRepository->distinct($key);
+
+        $this->assertEquals(10, count($values));
+    }
+
+    /**
+     * @depends testUserInsertMany
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public function testDistinctQuery()
+    {
+        $key = "name";
+        $query = ['age' => ['$lt' => 50]];
+
+        $values = $this->userRepository->distinct($key, $query);
+
+        $this->assertTrue(boolval(count($values)));
+    }
+
+    /**
+     * @depends testUserInsertMany
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public function testSumGroup()
+    {
+        $sumKey = "age";
+        $groupKey = ["name" => 1, "status" => 1];
+        $query = ['age' => ['$lt' => 50]];
+        $retval = $this->userRepository->sumGroup($sumKey, $groupKey, $query);
+
+        $this->assertTrue(boolval(count($retval)));
+    }
 }

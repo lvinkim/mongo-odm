@@ -12,6 +12,7 @@ namespace Lvinkim\MongoODM;
 use MongoDB\BSON\ObjectId;
 use MongoDB\Driver\BulkWrite;
 use MongoDB\Driver\Command;
+use MongoDB\Driver\Cursor;
 use MongoDB\Driver\WriteConcern;
 
 /**
@@ -60,7 +61,18 @@ abstract class Repository
         return "";
     }
 
+
     /**
+     * 获取 collection 表名
+     * @return string
+     */
+    public function getCollectionName(): string
+    {
+        return $this->collection();
+    }
+
+    /**
+     * 关联查询结构到 Entity 实体类
      * @param bool $hydrated
      * @return $this
      */
@@ -86,20 +98,27 @@ abstract class Repository
      * @param array $filter
      * @return bool|int
      */
-    public function count(array $filter = [])
+    public function count(array $filter = []): int
     {
         $command = new Command(['count' => $this->collection(), 'query' => $filter]);
         try {
-            $result = $this->documentManager->getManager()->executeCommand($this->database, $command)->toArray()[0];
-            return $result->n ?? 0;
+            $result = $this->documentManager->getManager()->executeCommand($this->database, $command)->toArray();
+            $row = reset($result);
+            if (is_object($row)) {
+                $count = $row->n ?? 0;
+            } else {
+                $count = 0;
+            }
         } catch (\MongoDB\Driver\Exception\Exception $exception) {
-            return false;
+            $count = 0;
         }
+        return intval($count);
     }
 
     /**
      * @param $id
      * @return mixed|null
+     * @throws \ErrorException
      */
     public function findOneById($id)
     {
@@ -109,6 +128,7 @@ abstract class Repository
     /**
      * @param array $filter
      * @return mixed|null
+     * @throws \ErrorException
      */
     public function findOne(array $filter = [])
     {
@@ -126,8 +146,11 @@ abstract class Repository
      * @param int|null $limit
      * @param array $options
      * @return \Generator
+     * @throws \ErrorException
      */
-    public function findMany(array $filter = [], array $sort = null, int $skip = null, int $limit = null, array $options = [])
+    public function findMany(
+        array $filter = [], array $sort = null, int $skip = null, int $limit = null, array $options = []
+    ): \Generator
     {
         $commandOpt = ['find' => $this->collection(), "noCursorTimeout" => true];
         $filter ? $commandOpt['filter'] = $filter : null;
@@ -155,6 +178,8 @@ abstract class Repository
             }
         } catch (\MongoDB\Driver\Exception\Exception $exception) {
             null;
+        } catch (\Throwable $throwable) {
+            throw new \ErrorException($throwable->getMessage(), $throwable->getCode());
         }
     }
 
@@ -363,6 +388,102 @@ abstract class Repository
         $insertedCount = $result->getInsertedCount();
 
         return ($modifiedCount + $insertedCount);
+    }
+
+    /**
+     * @param string $key
+     * @param array $query
+     * @return array
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public function distinct(string $key, array $query = []): array
+    {
+        $commandOpt = [
+            'distinct' => $this->collection(),
+            'key' => $key,
+            'query' => json_decode(json_encode($query)),
+        ];
+        $response = $this->runCommand($commandOpt);
+
+        $result = $response->toArray();
+        $row = reset($result);
+
+        $ok = boolval($row->ok ?? false);
+        if ($ok) {
+            $values = (array)($row->values ?? []);
+        } else {
+            $values = [];
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param string $sumKey
+     * @param array $groupKey
+     * @param array $cond
+     * @return array
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public function sumGroup(string $sumKey, array $groupKey = [], array $cond = []): array
+    {
+        $reduce = '
+            function ( curr, result ) {
+                result.total += curr.' . $sumKey . ';
+            }
+        ';
+        $initial = [
+            'total' => 0,
+        ];
+
+        $response = $this->group($reduce, $initial, $groupKey, $cond);
+
+        $result = $response->toArray();
+        $row = reset($result);
+
+        $ok = boolval($row->ok ?? false);
+
+        if ($ok) {
+            $retval = (array)($row->retval ?? []);
+        } else {
+            $retval = [];
+        }
+        return $retval;
+
+    }
+
+    /**
+     * @param string $reduce
+     * @param array $initial
+     * @param array $key
+     * @param array $cond
+     * @return Cursor
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public function group(string $reduce = "", array $initial = [], array $key = [], array $cond = []): Cursor
+    {
+        $commandOpt = [
+            "group" => [
+                'ns' => $this->collection(),
+                'key' => json_decode(json_encode($key)),
+                'cond' => json_decode(json_encode($cond)),
+                '$reduce' => $reduce,
+                'initial' => $initial,
+            ]
+        ];
+
+        return $this->runCommand($commandOpt);
+    }
+
+    /**
+     * @param array $commandOpt
+     * @return \MongoDB\Driver\Cursor
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public function runCommand(array $commandOpt): Cursor
+    {
+        $command = new Command($commandOpt);
+        return $this->documentManager->getManager()->executeCommand($this->database, $command);
     }
 
     /**

@@ -32,4 +32,13 @@ class BookRepository extends Repository
     {
         return Book::class;
     }
+
+    /**
+     * 返回数据库中的表名, 例如: user
+     * @return string
+     */
+    protected function collection(): string
+    {
+        return 'asset.Book';
+    }
 }

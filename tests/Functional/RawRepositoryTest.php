@@ -233,6 +233,7 @@ class RawRepositoryTest extends TestCase
 
     /**
      * @depends testClean
+     * @throws \ErrorException
      */
     public function testFindOneById()
     {
@@ -248,6 +249,7 @@ class RawRepositoryTest extends TestCase
 
     /**
      * @depends testClean
+     * @throws \ErrorException
      */
     public function testFineOne()
     {
@@ -264,6 +266,7 @@ class RawRepositoryTest extends TestCase
 
     /**
      * @depends testClean
+     * @throws \ErrorException
      */
     public function testFindMany()
     {
